@@ -1,0 +1,65 @@
+--stream object (to track all cdc DML changes on table)
+create or replace table customer(
+id number,
+first_name varchar,
+last_name varchar,
+date_of_birth date,
+active_flag boolean,
+city varchar
+);
+
+--insert records in table
+insert into customer values
+(1, 'John', 'luk', '3/15/2003', TRUE, 'New york'),
+(2, 'Pat', 'leonard', '4/17/2003', FALSE, 'LA'),
+(3, 'Sim', 'rose', '3/22/2003', TRUE, 'Chicago'),
+(4, 'Lila', 'scott', '12/15/2003', TRUE, 'dallas'),
+(5, 'Charlie', 'drew', '8/15/2003', FALSE, 'dallas'),
+(6, 'Ryan', 'luke', '10/15/2011', TRUE, 'Houston'),
+(7, 'Davis', 'ris', '5/18/2010', TRUE, 'Houston'),
+(8, 'Nalty', 'klen', '3/19/2008', TRUE, 'SF'),
+(9, 'Quinn', 'clan', '7/20/1997', TRUE, 'SJ'),
+(10, 'White', 'top', '1/23/2003', TRUE, 'New york');
+
+select * from customer;
+
+--create stream object to track changes in table
+create or replace stream cutsomer_stream on table customer;
+
+--see 3 additional columns 
+--metadata$action, metadata$isupdate, metadata$row_id
+select * from cutsomer_stream;
+
+--insert new data
+insert into customer values
+(11, 'Parth', 'kul', '3/15/2003', TRUE, 'Seattle'),
+(12, 'Aarav', 'salke', '4/7/2004', TRUE, 'SF');
+
+select * from cutsomer_stream; --check new data updated
+select * from customer;
+
+delete from customer where id=9;
+
+update customer set city= 'Kansas' where id=3;
+
+--check stream characteristics
+alter stream cutsomer_stream set comment="My tracking stream-1";
+desc stream cutsomer_stream;
+
+--show all stream/ tracking objects
+show streams;
+
+--new stream append only
+create or replace stream cutsomer_stream2 on table customer comment='my 2nd stream' append_only=True;
+
+insert into customer values
+(13, 'Sue', 'kulkarni', '2/23/2022', TRUE, 'boston');
+
+--append only stream check
+select * from cutsomer_stream2;
+
+delete from customer where id=13;
+
+
+--consume data from stream 
+delete from cutsomer_stream2 where id=13;

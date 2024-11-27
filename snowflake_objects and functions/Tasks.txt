@@ -1,0 +1,156 @@
+--create a table 
+create or replace table customer_dim(
+id number,
+first_name varchar,
+last_name varchar,
+date_of_birth date,
+active_flag boolean,
+city varchar,
+insert_time timestamp default current_timestamp()
+);
+
+select * from customer_dim;
+
+--create a sequence of object
+create or replace sequence customer_seq
+start 2
+increment 2
+comment='my demo seq';
+
+
+select customer_seq.nextvalue;
+
+--create task 
+create or replace task task_01
+warehouse= 'COMPUTE_WH'
+schedule= '1 minute'
+as
+insert into customer_dim (id, first_name, last_name, date_of_birth, active_flag, city)
+values (customer_seq.nextval, 'F-name','L-name', current_date(), TRUE, 'My-city')
+
+--in suspended state, you have to resume using accountadmin/sysadmin
+show tasks;
+desc task task_01;
+
+select * from customer_dim;
+
+--resumed task
+alter task task_01 resume;
+
+--alter task parameters
+aleter task task_01 set schedule='2 minute';
+
+--clone task
+create task task_clone clone task_01;
+
+show tasks;
+
+--check task history
+select * from table(information_schema.task_history()) where name='task_01' order by scheduled_time desc;
+
+select * from customer_dim;
+
+--schedule task using certain time
+-- minute (0-59), hour(0-23), day of month(1-23), month (1-12/JAN-DEC), dau of week (0-6, SUN-SAT)
+create or replace task task_01
+warehouse= 'COMPUTE_WH'
+schedule= 'USING CRON 5 * * * SUN America/Los_Angeles'
+as
+insert into customer_dim (id, first_name, last_name, date_of_birth, active_flag, city)
+values (customer_seq.nextval, 'F-name','L-name', current_date(), TRUE, 'My-city')
+
+alter task task_01 resume;
+
+show tasks;
+
+--stop task
+alter task task_01 suspend;
+
+
+--TASK TREE
+--create a table 
+create or replace table customer_tree(
+id number autoincrement,
+level varchar,
+first_name varchar,
+last_name varchar,
+date_of_birth date,
+active_flag boolean,
+city varchar,
+insert_time timestamp default current_timestamp()
+);
+
+
+--create parent task
+create or replace task parent_task_01
+warehouse= 'COMPUTE_WH'
+schedule= '1 minute'
+as
+insert into customer_tree (level, first_name, last_name, date_of_birth, active_flag, city)
+values ('Level-1', 'F-name','L-name', current_date(), TRUE, 'My-city');
+
+--create child task
+create or replace task parent_task_11
+warehouse= 'COMPUTE_WH'
+after parent_task_01
+as
+insert into customer_tree (level, first_name, last_name, date_of_birth, active_flag, city)
+values ('Level-2', 'F-name','L-name', current_date(), TRUE, 'My-city');
+
+--create child task 2
+create or replace task parent_task_12
+warehouse= 'COMPUTE_WH'
+after parent_task_01
+as
+insert into customer_tree (level, first_name, last_name, date_of_birth, active_flag, city)
+values ('Level-2_child-2', 'F-name','L-name', current_date(), TRUE, 'My-city');
+
+show tasks;
+
+--resume parent task
+alter task parent_task_01 resume;
+
+--task 2 ad 3 depends on task-1, reusme all child tasks before parent task
+alter task parent_task_11 resume;
+alter task parent_task_12 resume;
+
+--see execution
+select * from table(information_schema.task_history()) where name='parent_task_01' order by scheduled_time;
+
+SELECT *
+FROM TABLE(INFORMATION_SCHEMA.QUERY_HISTORY())
+WHERE QUERY_TEXT LIKE '%parent_task_01%'
+ORDER BY START_TIME DESC;
+
+select * from customer_tree order by insert_time;
+
+
+
+--doing task using stored procedure
+CREATE OR REPLACE PROCEDURE insert_into_customer_tree()
+RETURNS STRING
+LANGUAGE SQL
+AS
+$$
+BEGIN
+    INSERT INTO customer_tree (level, first_name, last_name, date_of_birth, active_flag, city)
+    VALUES ('Level-0', 'F-name', 'L-name', CURRENT_DATE(), TRUE, 'My-city');
+    RETURN 'Insert successful';
+END;
+$$;
+
+--create task
+CREATE OR REPLACE TASK task_100
+WAREHOUSE= 'COMPUTE_WH'
+schedule= '1 minute'
+AS
+CALL insert_into_customer_tree();
+
+--resume trigger task
+ALTER TASK task_100 suspend;
+
+--check table
+select * from customer_tree order by insert_time;
+
+show tasks;
+

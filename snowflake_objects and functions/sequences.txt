@@ -1,0 +1,26 @@
+use role sysadmin
+create or replace database my_db_08 comment= "Database for ch-8"
+create schema my_schema_08 comment= "Schema for ch-8"
+use database my_db_08
+use schema my_schema_08
+
+create or replace sequence seq_01 start=1 increment=1 comment='This is trial sequence';
+create or replace sequence seq_02 start=1 increment=2 comment='This is trial sequence';
+create or replace sequence seq_03 start=0 increment=-2 comment='This is trial sequence with negative increment';
+
+select seq_01.nextval, seq_02.nextval, seq_03.nextval;
+
+create or replace table my_tb1_02(
+pk int autoincrement,
+seq1 int default seq_01.nextval,
+seq2 int default seq_02.nextval,
+seq3 int default seq_03.nextval,
+msg string
+);
+
+desc table my_tb1_02;
+
+insert into my_tb1_02(msg) values ('msg-1');
+
+show sequences;
+

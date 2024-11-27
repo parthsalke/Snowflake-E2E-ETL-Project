@@ -1,0 +1,64 @@
+
+use database tipsdb;
+use schema ch10;
+
+
+create or replace table my_customer(
+cust_key number(38,0),
+name varchar(25),
+address varchar(40),
+nation_key number(38,0),
+phone varchar(15),
+account_balance number(38,0),
+market_segement varchar(10),
+comment varchar(117)
+);
+
+select * from my_customer;
+
+
+----create internal stage
+create or replace stage stg_010
+comment= "This is internal stage";
+
+desc stage stg_010;
+
+--check if file put from cli to stage
+list @stg_010/ pattern='.*.csv';
+
+--copy into table
+COPY INTO my_customer
+FROM @STG_010
+FILE_FORMAT = (TYPE = 'CSV' SKIP_HEADER = 1);
+
+select * from my_customer;
+select count(*) from my_customer;
+
+-----create a pipe object 
+create or replace pipe my_pipe_10
+as
+copy into my_customer from @stg_010/delta/;
+
+desc pipe my_pipe_10;
+
+list @stg_010/delta/;
+
+----alter pipe resume pipe
+alter pipe my_pipe_10 refresh;
+
+--monitor pipe
+select SYSTEM$PIPE_STATUS('my_pipe_10');
+
+--validate pipe load (how many data is load in timeframe)
+select * from table(validate_pipe_load( pipe_name=>'my_pipe_10', start_time=>dateadd(hour, -1, current_timestamp())));
+
+
+--time travel by using offset keyword
+select * from my_customer at (offset=> -300*5)
+
+ 
+
+
+
+
+

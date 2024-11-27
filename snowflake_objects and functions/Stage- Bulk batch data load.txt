@@ -1,0 +1,68 @@
+--List stage: user 
+list @~;
+
+
+--List stage table
+list @%MY_TABLE;
+
+select * from MY_TABLE limit 5;
+
+--Display all the stages
+show stages;
+list @MY_STG;
+
+--Create Internal stages
+create stage "MY_DB"."MY_SCHEMA".stg_03 comment= "This is demo stage";
+
+show stages
+
+--Lets put a file to user storage
+--put file://C:/visits.csv @STG_03;
+-- put file://file_path @stage_name auto_compress=false;
+
+list @%STG_03;
+
+
+--remove files from stages after moving to permanant location
+remove @~ch09/;
+
+--drop 
+drop stage @%table_name
+
+drop stage STG_03;
+
+--load from external stage(aws, gcp, azure)
+show stages like 'Stage_name';
+
+
+--load then copy to copy history 
+
+
+--create table and add a file format
+CREATE OR REPLACE TABLE visits_data (
+    location_id int,
+    visits int,
+    timestamp int
+);
+
+--copy command to load the data
+COPY INTO visits_data
+FROM @STG_03
+FILE_FORMAT = (TYPE = 'CSV' SKIP_HEADER = 1);
+
+
+--view the data
+SELECT * FROM visits_data;
+
+use role accountadmin;
+
+--copy history table
+select * from "SNOWFLAKE"."ACCOUNT_USAGE"."COPY_HISTORY";
+
+--load history table
+select * from "SNOWFLAKE"."ACCOUNT_USAGE"."LOAD_HISTORY";
+
+--stages
+select * from "SNOWFLAKE"."ACCOUNT_USAGE"."STAGES";
+
+

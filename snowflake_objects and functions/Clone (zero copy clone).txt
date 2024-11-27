@@ -1,0 +1,29 @@
+--create a table
+create or replace table simple_order(
+orderkey number(38,0),
+custkey number(38,0),
+orderstatus varchar(1),
+totalprice number(12,2),
+orderdate date,
+orderpriority varchar(15)
+);
+
+--insert few rows
+insert into simple_order (orderkey, custkey, orderstatus, totalprice, orderdate, orderpriority)
+   select o_orderkey, o_custkey, o_orderstatus, o_totalprice, o_orderdate, o_orderpriority
+   from snowflake_sample_data.tpch_sf1.orders order by o_orderkey limit 100000;
+
+--validate if loaded
+select count(*) from simple_order limit 10;
+
+--delete to ensure time travel feature
+delete from simple_order where orderkey between 30 and 40;
+--01b89cb9-020b-8922-000a-00df0001907e  -- query id
+
+--create a table using clone keyword
+create table simple_order_clone clone simple_order;
+
+select count(*) from simple_order;
+select count(*) from simple_order_clone;
+
+select * from "MY_DB"."MY_SCHEMA"."TABLES" where table_name in ('SIMPLE_ORDER','SIMPLE_ORDER_CLONE') and table_schema= 'MY_SCHEMA';
