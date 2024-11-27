@@ -1,0 +1,1 @@
+Welcome to the Snowflake ETL for Customer Sales project! This repository demonstrates an end-to-end ETL pipeline that extracts, transforms, and loads customer sales data into a Snowflake data warehouse.
